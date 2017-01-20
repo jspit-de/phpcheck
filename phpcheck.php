@@ -43,7 +43,7 @@
   
   private $fileName = '';
   private $file = array();
-	private $checks = array();
+  private $checks = array();
   private $tabSpace = 4;
   
   private $filterFkt = 'default';
@@ -80,13 +80,13 @@
 
     $this->tsInstanceCreate = microtime(true);
     
-	}
+  }
   
  /* 
   * the method marks the start of new test
   * param $comment set a title/comment of following test  
   */
-	public function start($comment=''){
+  public function start($comment=''){
     $this->startActive = true;
     $this->checkComment = $comment;
     //start line
@@ -103,7 +103,7 @@
   * param $comment set a title/comment of following test 
   * works how start() and expectOutput()  
   */
-	public function startOutput($comment=''){
+  public function startOutput($comment=''){
     $this->startActive = true;
     $this->checkComment = $comment;
     //start line
@@ -123,7 +123,7 @@
   * param $testResult true/false for test was ok or not
   * param $comment set a title/comment, if method start use this comment will be overwerite
   */
-	public function check($actual,$testResult,$comment=''){
+  public function check($actual,$testResult,$comment=''){
     $mTime = microtime(true);
     //ob_get_clean();
     $this->addCheckArr($actual,$testResult,$comment,$mTime);
@@ -139,7 +139,7 @@
   * param $comment new comment
   * param $delta if not 0, then check abs($expected-$actual) <= $delta
   */  
-	public function checkEqual($actual,$expected,$comment='', $delta = 0){
+  public function checkEqual($actual,$expected,$comment='', $delta = 0){
     $mTime = microtime(true);
     //ob_get_clean();
     $equal = $expected===$actual;
@@ -163,7 +163,7 @@
   * param $comment new comment
   * param $delta if not 0, then check abs($expected-$actual) <= $delta
   */  
-	public function checkEqualHex($actual,$expected,$comment=''){
+  public function checkEqualHex($actual,$expected,$comment=''){
     $mTime = microtime(true);
     //ob_get_clean();
     $testResult = $expected===$actual;
@@ -181,7 +181,7 @@
   * param $actual the actual result html-Code
   * param $containStrings: if not "" the result must contain Strings
   */  
-	public function checkHTML($actual = null, $containStrings = ""){
+  public function checkHTML($actual = null, $containStrings = ""){
     $mTime = microtime(true);
     
     if($actual === null AND $this->obStartCalled = true) {
@@ -204,7 +204,7 @@
   * param $actual the actual result html-Code
   * param $containStrings: if not "" the result must contain Strings
   */  
-	public function checkContains($actual, $containStrings = ""){
+  public function checkContains($actual, $containStrings = ""){
     $mTime = microtime(true);
     $testResult = true;
     if($containStrings !== "") {
@@ -221,7 +221,7 @@
   * finish a test
   * param $actual the actual result html-Code
   */  
-	public function checkOutput($containStrings = ""){
+  public function checkOutput($containStrings = ""){
     $mTime = microtime(true);
     $actual = $this->getOutput();
     $testResult = $this->strContains($actual,$containStrings);
@@ -236,7 +236,7 @@
   * par $user: function-name, closure or static method "class::method"
   * par $data: multiple array with comment as key and array(par,par2,..,expectedValue)
   */  
-	public function checkMultiple($userFct,array $data) {
+  public function checkMultiple($userFct,array $data) {
     $backtrace = debug_backtrace();
     $checkLine = $backtrace[0]['line'];
     $currFileName = $backtrace[0]['file'];
@@ -309,22 +309,22 @@
     ),
     'mctime' => 6.9E-6,     //Time required by the test
   ))
-  */	
-	public function getResults(){
-	  return $this->checks;
-	}
+  */
+  public function getResults(){
+    return $this->checks;
+  }
 
  /*
   * return last result or result with the specified key
   * return false if error
   */
-	public function getLastResult($key = null){
+  public function getLastResult($key = null){
     $lastResult = end($this->checks);
     reset($this->checks);
     if($key === null) return $lastResult;
     if(isset($lastResult[$key])) return $lastResult[$key];
     return false;
-	}
+  }
   
  /* 
   * return the PHP Code (taskCode) as highlightPhpString from the last check 
@@ -332,17 +332,17 @@
   public function getLastPHPcode(){
     return $this->highlightPhpString($this->getLastResult('taskCode'));  
   }
-	
+
  /*
   * returns the number of failed tests
   */
-	public function getErrorCount(){
-	  $ErrorCount = 0;
-	  foreach($this->checks as $check){
-	    if(!$check['test']) $ErrorCount++;
-	  }
-	  return $ErrorCount;
-	}
+  public function getErrorCount(){
+    $ErrorCount = 0;
+    foreach($this->checks as $check){
+      if(!$check['test']) $ErrorCount++;
+    }
+    return $ErrorCount;
+  }
   
  /* 
   * return count of check-calls
@@ -441,7 +441,7 @@
   * param: tableAttribut e.g. 'style=""'
   * param: set $clearResults = false if you may not delete collected results
   */
-	public function getTable($tableAttribut = "", $clearResults = true){
+  public function getTable($tableAttribut = "", $clearResults = true){
     $testResults = $this->getResults();
     //
     $tableArr = array();
@@ -466,10 +466,10 @@
       //test Ok
       $tableArr[$key]['test'] = $el['test'] ? 'Ok' : '<b>Error</b>';;
     }
-	  $html = $this->table($tableAttribut,array('Comment','Line','Code','Result','Test'),$tableArr);
+    $html = $this->table($tableAttribut,array('Comment','Line','Code','Result','Test'),$tableArr);
     if($clearResults) $this->checks = array();
-	  return $html;
-	}
+    return $html;
+  }
   
  /*
   * return default html header for a site as string
@@ -686,27 +686,27 @@
     $this->checkComment = '';
   }
   
-	
+  
   private function table($att, $titleArr, array $dataArr) {
-		$html = '<table '.$att.'>'."\r\n";
-		//col title
-		$html .= '<thead><tr>';
-		foreach($titleArr as $i => $title) {
-		  $html .= '<th>'. $title. '</th>'; 
-		}
-		$html .= '</tr></thead>'."\r\n";
-		//table 
+    $html = '<table '.$att.'>'."\r\n";
+    //col title
+    $html .= '<thead><tr>';
+    foreach($titleArr as $i => $title) {
+      $html .= '<th>'. $title. '</th>'; 
+    }
+    $html .= '</tr></thead>'."\r\n";
+    //table 
     $html .= '<tbody>'."\r\n";    
-		foreach($dataArr as $k => $subArr) {
-			$html .= '<tr>'."\r\n";
-			foreach($subArr as $i => $colValue) {
-			  $html .= '<td>'.$colValue."</td>\r\n";
-			}
-			$html .= '</tr>'."\r\n";
-		}
+    foreach($dataArr as $k => $subArr) {
+      $html .= '<tr>'."\r\n";
+      foreach($subArr as $i => $colValue) {
+        $html .= '<td>'.$colValue."</td>\r\n";
+      }
+      $html .= '</tr>'."\r\n";
+    }
 
-		$html .= '</tbody>'."\r\n".'</table>'."\r\n";
-		return $html;
+    $html .= '</tbody>'."\r\n".'</table>'."\r\n";
+    return $html;
   }
   
  /*
