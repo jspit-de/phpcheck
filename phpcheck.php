@@ -2,10 +2,10 @@
 /**
 .---------------------------------------------------------------------------.
 |  Software: PHPcheck - simple Test class for output in web browser         |
-|   Version: 1.3.5                                                          |
-|      Date: 01.12.2016                                                     |
+|   Version: 1.3.11                                                         |
+|      Date: 12.06.2017                                                     |
 | ------------------------------------------------------------------------- |
-| Copyright © 2015,2016 Peter Junk (alias jspit). All Rights Reserved.      |
+| Copyright © 2015..2017 Peter Junk (alias jspit). All Rights Reserved.     |
 | ------------------------------------------------------------------------- |
 |   License: Distributed under the Lesser General Public License (LGPL)     |
 |            http://www.gnu.org/copyleft/lesser.html                        |
@@ -15,7 +15,9 @@
 '---------------------------------------------------------------------------'
  */
  class PHPcheck{
-  const version = '1.3.5';
+  const version = '1.3.11';
+  const DISPLAY_PRECISION = 16;
+  const FLOAT_PRECISION = 14;
   //CSS for getHtml
   private $defaultCss = 'table.phpchecktab {
     border-collapse: collapse; 
@@ -37,7 +39,11 @@
   .Send_Form_Element{
     position:absolute;
     top: -30px;
-    left:600px;
+    left:650px;
+  }
+  .test_Error {
+    font:bold 12pt Arial;
+    color:#A00;
   }
   ';
   
@@ -75,9 +81,10 @@
   * create a instance of phpcheck
   */
   public function __construct(){
-    
     set_error_handler(array($this,'checkErrorHandler'));
-
+    ini_set('serialize_precision', self::DISPLAY_PRECISION);
+    ini_set('precision', self::FLOAT_PRECISION);
+    
     $this->tsInstanceCreate = microtime(true);
     
   }
@@ -143,8 +150,13 @@
     $mTime = microtime(true);
     //ob_get_clean();
     $equal = $expected===$actual;
-    if(!$equal AND $delta != 0 AND (is_float($actual) OR is_int($actual))){
-      $equal = abs($expected-$actual) <= $delta ;
+    if(!$equal AND (is_float($actual) OR is_int($actual))){
+      if($delta > 0) {
+        $equal = abs($expected-$actual) <= $delta ;
+      }
+      elseif( is_float($expected)) {
+        $equal = ((string)$expected == (string)$actual); 
+      }
     }
     $this->addCheckArr($actual,$equal,$comment,$mTime);
     $lastResult = $this->getLastResult();
@@ -233,7 +245,7 @@
  
  /*
   * make a multiple test
-  * par $user: function-name, closure or static method "class::method"
+  * par $user: function-name, closure, static method "class::method" or array($class,'method')
   * par $data: multiple array with comment as key and array(par,par2,..,expectedValue)
   */  
   public function checkMultiple($userFct,array $data) {
@@ -242,10 +254,33 @@
     $currFileName = $backtrace[0]['file'];
     $this->cacheScriptFile($currFileName);
 
+    //parameter -> code
+    $fctMixValToCode = function($mixVal){
+      if(is_resource($mixVal)) return '{resource}';
+      $code = var_export($mixVal, true);
+      $code = preg_replace('~^(\w+)(::__.*| ?\(.+)~isu','{$1}',$code);
+      return $code;
+    };
+    
     foreach($data as $comment => $checkValues) {
       $expectedResult = array_pop($checkValues);
-      $phpCodeInfo = 'expected = '.$expectedResult.";\r\n"; 
-      $phpCodeInfo .= '$result = '.var_export($userFct,true).'('.implode(",",$checkValues).');';
+      $phpCodeInfo = '$expected = '
+        .$fctMixValToCode($expectedResult)
+        .";\r\n";
+      if(is_Array($userFct) AND isset($userFct[0]) AND isset($userFct[1])) {
+        $className = is_object($userFct[0]) 
+          ? get_class($userFct[0]) 
+          : trim(var_export($userFct[0],true),"' ")
+        ;
+        $strCodeuserFct = $className.'->'.$userFct[1];
+      }
+      else {
+        $strCodeuserFct = trim(var_export($userFct,true),"' ");
+      }
+      $valuesCode = array_map($fctMixValToCode, $checkValues);     
+      $phpCodeInfo .= '$result = '
+        .$strCodeuserFct
+        .'('.implode(",",$valuesCode).');';
       //
       $mTime = microtime(true);
       $actual = call_user_func_array($userFct, $checkValues);
@@ -464,7 +499,7 @@
       $result .= $el['filterResult'];
       $tableArr[$key]['result'] = $result;
       //test Ok
-      $tableArr[$key]['test'] = $el['test'] ? 'Ok' : '<b>Error</b>';;
+      $tableArr[$key]['test'] = $el['test'] ? 'Ok' : '<div class="test_Error">Error</div>';;
     }
     $html = $this->table($tableAttribut,array('Comment','Line','Code','Result','Test'),$tableArr);
     if($clearResults) $this->checks = array();
@@ -527,7 +562,8 @@
     $html = '<b>'.basename($this->fileName);
     $html .= ' Total: '.$this->getCheckCount().' Tests, '.$this->geterrorCount().' Errors</b><br>';
     if($this->headline != "") $html .= $this->headline . "<br>";
-    $html .= 'PHPCheck V'.self::version.', OS: '.PHP_OS.', PHP-Version: '.PHP_VERSION.', Time: '.$totalTime.' s';
+    $html .= 'PHPCheck V'.self::version.', OS: '.PHP_OS;
+    $html .= ', PHP-Version: '.PHP_VERSION.' ('. PHP_INT_SIZE * 8 .' Bit), Time: '.$totalTime.' s';
     $html .= ', Memory: '.sprintf('%.1f',memory_get_peak_usage(true)/1024/1024).'M ('.ini_get('memory_limit').')';
     $html .= "<br/>\r\n";
     return $html;
@@ -808,5 +844,6 @@
     return true;
   }
   //
+  
 
 }
