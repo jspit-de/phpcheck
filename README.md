@@ -6,7 +6,8 @@ Simple Test class for output in web browser
 - only pure PHP5 (> V5.3) required, no development environments, extensions, frameworks or installations necessary
 - runs on all target platforms (all web hosts up to embedded controllers)
 
-###Example
+### Example
+
 ```php
 <?php
 //error_reporting(-1);  //dev
@@ -51,13 +52,13 @@ $t->checkEqual($result,$expected);
 echo $t->gethtml();
 ```
 
-###View in browser
+### View in browser
 
-**phpcheck.demo2.php Total: 3 Tests, 1 Errors**
+**phpcheck.demo2.php Total: 3 Tests, 1 Errors**  
 PHPCheck V1.3.13, OS: Linux, PHP-Version: 7.1.7 (64 Bit), Time: 0.00 s, Memory: 2.0M (128M)
 
 **Comment** | **Line** | **Code** | **Result** | **Test**
 ----------- | -------------|----------|-----------------|-----------
 fact() test 1|22|$result = fact(3);<br/>$expected = 6;<br/>$t->$t->checkEqual($result,$expected);|[0.0 ms]<br/>6|Ok
 fact() test 2|27|$result = fact(5);<br/>$expected = 120;<br/>$t->$t->checkEqual($result,$expected);|[0.0 ms]<br/>120|Ok
-fact() test 3|32|$result = fact(-1);<br/>$expected = false;<br/>$t->$t->checkEqual($result,$expected);|[0.0 ms]<br/>1|<span style="color:red">**Error**</span>
+fact() test 3|32|$result = fact(-1);<br/>$expected = false;<br/>$t->$t->checkEqual($result,$expected);|[0.0 ms]<br/>1|**Error**
