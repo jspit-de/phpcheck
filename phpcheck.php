@@ -2,8 +2,8 @@
 /**
 .---------------------------------------------------------------------------.
 |  Software: PHPcheck - simple Test class for output in web browser         |
-|   Version: 1.3.11                                                         |
-|      Date: 12.06.2017                                                     |
+|   Version: 1.3.13                                                         |
+|      Date: 29.06.2017                                                     |
 | ------------------------------------------------------------------------- |
 | Copyright © 2015..2017 Peter Junk (alias jspit). All Rights Reserved.     |
 | ------------------------------------------------------------------------- |
@@ -15,9 +15,11 @@
 '---------------------------------------------------------------------------'
  */
  class PHPcheck{
-  const version = '1.3.11';
+  const version = '1.3.13';
   const DISPLAY_PRECISION = 16;
-  const FLOAT_PRECISION = 14;
+  const DEFAULT_FLOAT_PRECISION = 14;
+  //
+  public $cmpFloatPrecision = self::DEFAULT_FLOAT_PRECISION;
   //CSS for getHtml
   private $defaultCss = 'table.phpchecktab {
     border-collapse: collapse; 
@@ -83,7 +85,7 @@
   public function __construct(){
     set_error_handler(array($this,'checkErrorHandler'));
     ini_set('serialize_precision', self::DISPLAY_PRECISION);
-    ini_set('precision', self::FLOAT_PRECISION);
+    //ini_set('precision', self::FLOAT_PRECISION);
     
     $this->tsInstanceCreate = microtime(true);
     
@@ -148,24 +150,21 @@
   */  
   public function checkEqual($actual,$expected,$comment='', $delta = 0){
     $mTime = microtime(true);
-    //ob_get_clean();
     $equal = $expected===$actual;
-    if(!$equal AND (is_float($actual) OR is_int($actual))){
+    if(!$equal){
       if($delta > 0) {
+        //for delta > 0 compare as float
         $equal = abs($expected-$actual) <= $delta ;
       }
-      elseif( is_float($expected)) {
-        $equal = ((string)$expected == (string)$actual); 
+      elseif(is_float($actual) OR is_float($expected)) {
+        $equal = $this->roundPrecision($actual,$this->cmpFloatPrecision) 
+               == $this->roundPrecision($expected,$this->cmpFloatPrecision);        
       }
     }
     $this->addCheckArr($actual,$equal,$comment,$mTime);
     $lastResult = $this->getLastResult();
     $this->startMcTime = microtime(true);
     return $lastResult;
-  }
-  
-  public function assertEquals($actual,$expected, $delta = 0){
-    return $this->checkEqual($actual,$expected);
   }
 
  /*
@@ -677,6 +676,19 @@
     return "";
   }
   
+ /*
+  * @return Float-Value with reduced precision
+  * @param $floatValue: input (float)
+  * @param $overallPrecision: 1..20 (default 14)
+  */
+  public function roundPrecision($floatValue, $overallPrecision = self::FLOAT_PRECISION)
+  {
+    $p = min(20,max(0,$overallPrecision-1));
+    $f =(float)sprintf('%.'.$p.'e',$floatValue);
+    return $f;
+  }
+
+  
 /*
  * protected
  */
@@ -843,7 +855,6 @@
     }
     return true;
   }
-  //
   
 
 }
