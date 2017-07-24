@@ -2,8 +2,8 @@
 /**
 .---------------------------------------------------------------------------.
 |  Software: PHPcheck - simple Test class for output in web browser         |
-|   Version: 1.3.13                                                         |
-|      Date: 29.06.2017                                                     |
+|   Version: 1.3.14                                                         |
+|      Date: 24.07.2017                                                     |
 | ------------------------------------------------------------------------- |
 | Copyright © 2015..2017 Peter Junk (alias jspit). All Rights Reserved.     |
 | ------------------------------------------------------------------------- |
@@ -85,10 +85,8 @@
   public function __construct(){
     set_error_handler(array($this,'checkErrorHandler'));
     ini_set('serialize_precision', self::DISPLAY_PRECISION);
-    //ini_set('precision', self::FLOAT_PRECISION);
     
     $this->tsInstanceCreate = microtime(true);
-    
   }
   
  /* 
@@ -172,7 +170,6 @@
   * param $actual the actual result, if is string it will be show as hex-string
   * param $expected the expected result
   * param $comment new comment
-  * param $delta if not 0, then check abs($expected-$actual) <= $delta
   */  
   public function checkEqualHex($actual,$expected,$comment=''){
     $mTime = microtime(true);
@@ -681,7 +678,7 @@
   * @param $floatValue: input (float)
   * @param $overallPrecision: 1..20 (default 14)
   */
-  public function roundPrecision($floatValue, $overallPrecision = self::FLOAT_PRECISION)
+  public function roundPrecision($floatValue, $overallPrecision = self::DEFAULT_FLOAT_PRECISION)
   {
     $p = min(20,max(0,$overallPrecision-1));
     $f =(float)sprintf('%.'.$p.'e',$floatValue);
