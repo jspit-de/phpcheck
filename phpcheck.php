@@ -15,7 +15,7 @@
 '---------------------------------------------------------------------------'
  */
  class PHPcheck{
-  const version = '1.3.13';
+  const version = '1.3.14';
   const DISPLAY_PRECISION = 16;
   const DEFAULT_FLOAT_PRECISION = 14;
   //
