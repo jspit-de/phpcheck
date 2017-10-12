@@ -62,3 +62,25 @@ PHPCheck V1.3.13, OS: Linux, PHP-Version: 7.1.7 (64 Bit), Time: 0.00 s, Memory: 
 fact() test 1|22|$result = fact(3);<br/>$expected = 6;<br/>$t->checkEqual($result,$expected);|[0.0 ms]<br/>6|Ok
 fact() test 2|27|$result = fact(5);<br/>$expected = 120;<br/>$t->checkEqual($result,$expected);|[0.0 ms]<br/>120|Ok
 fact() test 3|32|$result = fact(-1);<br/>$expected = false;<br/>$t->checkEqual($result,$expected);|[0.0 ms]<br/>1|**Error**
+
+### Demos
+
+#### Unit Test class dt
+
+http://jspit.de/check/phpcheck.class.dt.php
+
+#### Test for a method to create an HTML Table 
+
+http://jspit.de/check/phpcheck.table.class.html.php
+
+#### Interactiv tests for methods to create an HTML inputs
+
+http://jspit.de/check/phpcheck.input.class.html.php
+
+http://jspit.de/check/phpcheck.select.class.html.php
+
+
+
+
+
+
