@@ -1,6 +1,9 @@
 # phpcheck
+
 Simple Test class for output in web browser
+
 ### Features
+
 - Supports module and interaction tests
 - Result presentation as a table in the browser
 - only pure PHP5 (> V5.3) required, no development environments, extensions, frameworks or installations necessary
@@ -68,6 +71,10 @@ fact() test 3|32|$result = fact(-1);<br/>$expected = false;<br/>$t->checkEqual($
 #### Unit Test class dt
 
 http://jspit.de/check/phpcheck.class.dt.php
+
+#### Test class.debug.php
+
+http://jspit.de/check/phpcheck.class.debug.php
 
 #### Test for a method to create an HTML Table 
 
