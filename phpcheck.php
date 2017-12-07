@@ -2,8 +2,8 @@
 /**
 .---------------------------------------------------------------------------.
 |  Software: PHPcheck - simple Test class for output in web browser         |
-|   Version: 1.3.14                                                         |
-|      Date: 24.07.2017                                                     |
+|   Version: 1.3.17                                                         |
+|      Date: 11.11.2017                                                     |
 | ------------------------------------------------------------------------- |
 | Copyright © 2015..2017 Peter Junk (alias jspit). All Rights Reserved.     |
 | ------------------------------------------------------------------------- |
@@ -15,7 +15,7 @@
 '---------------------------------------------------------------------------'
  */
  class PHPcheck{
-  const version = '1.3.14';
+  const version = '1.3.18';
   const DISPLAY_PRECISION = 16;
   const DEFAULT_FLOAT_PRECISION = 14;
   //
@@ -188,8 +188,9 @@
   * finish a test
   * param $actual the actual result html-Code
   * param $containStrings: if not "" the result must contain Strings
+  * param $ignoreLibXmlErrors: ignor Errors how unknown Tags
   */  
-  public function checkHTML($actual = null, $containStrings = ""){
+  public function checkHTML($actual = null, $containStrings = "", $ignoreLibXmlErrors = false){
     $mTime = microtime(true);
     
     if($actual === null AND $this->obStartCalled = true) {
@@ -197,7 +198,8 @@
       $this->obStartCalled = false;
     }
     //else ob_get_clean();
-    $testResult = $this->validateHTML($actual);
+    $htmlErrors = $this->getValidateHtmlError($actual,$ignoreLibXmlErrors);
+    $testResult = $htmlErrors === "";
     if($containStrings !== "") {
       $testResult = $testResult && $this->strContains($actual,$containStrings);
     }
@@ -301,6 +303,37 @@
     $offset = count($this->checks) - count($data);
     return array_slice($this->checks, $offset, count($data));
   }
+  
+  /* 
+  * use this method's to finish a test
+  * param $closure a function with testobject 
+  * param $exceptionTyp the exception or "" for all
+  * param $comment set a title/comment, if method start use this comment will be overwerite
+  */
+  public function checkException($closure,$exceptionTyp = "",$comment=''){
+    
+    $mTime = microtime(true);
+    if(is_callable($closure)) {
+      try{
+        $closure();
+        $actual = "";
+        $testResult = false;
+      }
+      catch(exception $e){
+        $testResult = $exceptionTyp !== "" ? $e instanceOf $exceptionTyp : true;
+        $actual = "Exception: ".get_class($e);
+      }
+    }
+    else {
+      $testResult = false;
+      $actual = "PHPchek-Error: first parameter must be a closure";
+    }    
+    $this->addCheckArr($actual,$testResult,$comment,$mTime);
+    $lastResult = $this->getLastResult();
+    $this->startMcTime = microtime(true);
+    return $lastResult;
+  }
+ 
   
  /*
   * prepare the output buffer for expect a output
@@ -625,10 +658,14 @@
     return preg_replace('/&nbsp;/','',$codeHighlight,1);
   }
 
- /*
-  * return false if $html is invalid 
-  */
-  public function validateHTML($html){
+/* 
+ * validate a html-string and get the error notice
+ * return "" if ok and not error found
+ * return error-message if errror
+ * param: HTML as string
+ * param: flag $ignoreLibXmlErrors true/false default false
+ */
+  public function getValidateHtmlError($html, $ignoreLibXmlErrors = false){
     if(preg_match('~</?body>~',$html) == 0){
       $html = '<body>'.$html.'</body>';
     }
@@ -638,12 +675,25 @@
     $loadError = !$doc->loadHTML($code); 
     $errors = libxml_get_errors();
     libxml_use_internal_errors($previousUseErrors);
-    if($loadError or $errors) return false;
+    if($loadError) {
+      return 'DOM Load Error';
+    }
+    if($errors and !$ignoreLibXmlErrors) {
+      $errMsg = array();
+      foreach($errors as $LibXMLError){
+        $errMsg[] = trim($LibXMLError->message);  
+      }    
+      return implode(" and ",$errMsg);
+    }
     $node = $doc->getElementsByTagName("body")->item(0);
     $fragment = $doc->saveHTML($node);
-    $fragment = preg_replace('~[\x00-\x20"\']~','',$fragment);
-    $html = preg_replace('~[\x00-\x20"\']~','',$html);
-    return $fragment === $html;
+    $pattern = array(
+      '~[\x00-\x20"\']~',
+      '~</(p|dt|dd|li|option|thead|th|tbody|tr|td|tfoot|colgroup)>~i'
+    );
+    list($fragment,$html) = preg_replace($pattern,'',array($fragment,$html));
+    if($fragment === $html) return "";
+    return 'Error html structure';
   }
 
  /*
@@ -836,8 +886,10 @@
   
  /*
   * check if $haystack contains all $needles
+  * return true/false
   * param $haystack: The string to search in
   * param $needles: a array of strings or a list of strings
+  *  if needle is a list, the elements must be present in the order (>V 1.3.16)
   * param $delimiter: Delimiter for stringlist 
   */  
   private function strContains($haystack, $needles, $delimiter = ",") {
@@ -847,8 +899,11 @@
     }
     elseif(!is_array($needles)) $needles = array(var_export($needles,true));
     
+    $oldPos = 0;
     foreach($needles as $needle) {
-      if(strpos($haystack,$needle) === false) return false;
+      $curPos = strpos($haystack,$needle,$oldPos);
+      if($curPos === false OR $curPos < $oldPos) return false;
+      $oldPos = $curPos;
     }
     return true;
   }
