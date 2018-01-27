@@ -2,10 +2,10 @@
 /**
 .---------------------------------------------------------------------------.
 |  Software: PHPcheck - simple Test class for output in web browser         |
-|   Version: 1.3.17                                                         |
-|      Date: 11.11.2017                                                     |
+|   Version: 1.3.20                                                         |
+|      Date: 25.01.2018                                                     |
 | ------------------------------------------------------------------------- |
-| Copyright © 2015..2017 Peter Junk (alias jspit). All Rights Reserved.     |
+| Copyright © 2015..2018 Peter Junk (alias jspit). All Rights Reserved.     |
 | ------------------------------------------------------------------------- |
 |   License: Distributed under the Lesser General Public License (LGPL)     |
 |            http://www.gnu.org/copyleft/lesser.html                        |
@@ -15,7 +15,7 @@
 '---------------------------------------------------------------------------'
  */
  class PHPcheck{
-  const version = '1.3.18';
+  const version = '1.3.20';
   const DISPLAY_PRECISION = 16;
   const DEFAULT_FLOAT_PRECISION = 14;
   //
@@ -665,7 +665,7 @@
  * param: HTML as string
  * param: flag $ignoreLibXmlErrors true/false default false
  */
-  public function getValidateHtmlError($html, $ignoreLibXmlErrors = false){
+  public static function getValidateHtmlError($html, $ignoreLibXmlErrors = false){
     if(preg_match('~</?body>~',$html) == 0){
       $html = '<body>'.$html.'</body>';
     }
@@ -681,12 +681,15 @@
     if($errors and !$ignoreLibXmlErrors) {
       $errMsg = array();
       foreach($errors as $LibXMLError){
-        $errMsg[] = trim($LibXMLError->message);  
+        $errMsg[] = "Ln:".$LibXMLError->line.
+          " - ".trim($LibXMLError->message);
       }    
-      return implode(" and ",$errMsg);
+      return implode("<br>\r\n",$errMsg);
     }
     $node = $doc->getElementsByTagName("body")->item(0);
     $fragment = $doc->saveHTML($node);
+    $fragment = htmlspecialchars_decode($fragment,ENT_QUOTES); 
+    $html = htmlspecialchars_decode($html,ENT_QUOTES); 
     $pattern = array(
       '~[\x00-\x20"\']~',
       '~</(p|dt|dd|li|option|thead|th|tbody|tr|td|tfoot|colgroup)>~i'
