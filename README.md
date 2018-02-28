@@ -90,7 +90,7 @@ http://jspit.de/check/phpcheck.select.class.html.php
 
 http://jspit.de/check/phpcheck.class.sqliteobjectstore.php
 
-##### Autoloadertest
+#### Autoloadertest
 
 http://jspit.de/check/phpcheck.autoload.php
 
