@@ -86,8 +86,12 @@ http://jspit.de/check/phpcheck.input.class.html.php
 
 http://jspit.de/check/phpcheck.select.class.html.php
 
+#### Test class.sqliteobject.store
 
+http://jspit.de/check/phpcheck.class.sqliteobjectstore.php
 
+##### Autoloadertest
 
+http://jspit.de/check/phpcheck.autoload.php
 
 
