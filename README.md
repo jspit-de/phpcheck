@@ -66,7 +66,7 @@ fact() test 1|22|$result = fact(3);<br/>$expected = 6;<br/>$t->checkEqual($resul
 fact() test 2|27|$result = fact(5);<br/>$expected = 120;<br/>$t->checkEqual($result,$expected);|[0.0 ms]<br/>120|Ok
 fact() test 3|32|$result = fact(-1);<br/>$expected = false;<br/>$t->checkEqual($result,$expected);|[0.0 ms]<br/>1|**Error**
 
-###Public Methods
+### Public Methods
 
 | Methods and Parameter | Description/Comments |
 | :-------------------- | :------------------- |
