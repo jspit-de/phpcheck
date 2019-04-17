@@ -2,8 +2,8 @@
 /**
 .---------------------------------------------------------------------------.
 |  Software: PHPcheck - simple Test class for output in web browser         |
-|   Version: 1.3.20                                                         |
-|      Date: 25.01.2018                                                     |
+|   Version: 1.42                                                           |
+|      Date: 2018-10-30                                                     |
 | ------------------------------------------------------------------------- |
 | Copyright © 2015..2018 Peter Junk (alias jspit). All Rights Reserved.     |
 | ------------------------------------------------------------------------- |
@@ -15,7 +15,7 @@
 '---------------------------------------------------------------------------'
  */
  class PHPcheck{
-  const version = '1.3.20';
+  const version = '1.42';
   const DISPLAY_PRECISION = 16;
   const DEFAULT_FLOAT_PRECISION = 14;
   //
@@ -78,6 +78,8 @@
   private $nameSubmitButton = "SubmitButton_phpcheck";
   
   private $headline = "";
+  
+  private $outputOnlyErrors = false;
  
  /* 
   * create a instance of phpcheck
@@ -129,6 +131,7 @@
   * param $actual the result of test  
   * param $testResult true/false for test was ok or not
   * param $comment set a title/comment, if method start use this comment will be overwerite
+  * return array results
   */
   public function check($actual,$testResult,$comment=''){
     $mTime = microtime(true);
@@ -145,6 +148,7 @@
   * param $expected the expected result
   * param $comment new comment
   * param $delta if not 0, then check abs($expected-$actual) <= $delta
+  * return array results
   */  
   public function checkEqual($actual,$expected,$comment='', $delta = 0){
     $mTime = microtime(true);
@@ -170,15 +174,16 @@
   * param $actual the actual result, if is string it will be show as hex-string
   * param $expected the expected result
   * param $comment new comment
+  * return array results
   */  
   public function checkEqualHex($actual,$expected,$comment=''){
     $mTime = microtime(true);
     //ob_get_clean();
     $testResult = $expected===$actual;
     if(is_string($actual) and $actual !== ""){
-      $actual = '\\x'.implode('\\x',str_split(bin2hex($actual),2));
+      $actual = implode(' ',str_split(bin2hex($actual),2));
     }
-    $this->addCheckArr($actual,$testResult,$comment,$mTime);
+    $this->addCheckArr(strtoupper($actual),$testResult,$comment,$mTime);
     $lastResult = $this->getLastResult();
     $this->startMcTime = microtime(true);
     return $lastResult;
@@ -189,6 +194,7 @@
   * param $actual the actual result html-Code
   * param $containStrings: if not "" the result must contain Strings
   * param $ignoreLibXmlErrors: ignor Errors how unknown Tags
+  * return array results
   */  
   public function checkHTML($actual = null, $containStrings = "", $ignoreLibXmlErrors = false){
     $mTime = microtime(true);
@@ -211,14 +217,15 @@
 
  /*
   * finish a test
-  * param $actual the actual result html-Code
+  * param $actual the actual result 
   * param $containStrings: if not "" the result must contain Strings
+  * return array results
   */  
   public function checkContains($actual, $containStrings = ""){
     $mTime = microtime(true);
     $testResult = true;
     if($containStrings !== "") {
-      $testResult = $this->strContains($actual,$containStrings);
+      $testResult = $this->strContains(var_export($actual,true),$containStrings);
     }
     $this->addCheckArr($actual,$testResult,"",$mTime);
     $lastResult = $this->getLastResult();
@@ -228,15 +235,19 @@
 
   
  /*
-  * finish a test
-  * param $actual the actual result html-Code
+  * finish a test after startOutput
+  * param $containStrings : check if output contains the list of strings, default ""
+  * param $outputFilter : if not null setResultFilter temp to $outputFilter, p.E. 'html' 
+  * return array results
   */  
-  public function checkOutput($containStrings = ""){
+  public function checkOutput($containStrings = "", $outputFilter = null){
     $mTime = microtime(true);
+    $oldFilter = $outputFilter !== null ? $this->setResultFilter($outputFilter) : null;
     $actual = $this->getOutput();
     $testResult = $this->strContains($actual,$containStrings);
     $this->addCheckArr($actual,$testResult,"",$mTime);
     $lastResult = $this->getLastResult();
+    if($outputFilter !== null) $this->setResultFilter($oldFilter); 
     $this->startMcTime = microtime(true);
     return $lastResult;
   }
@@ -245,6 +256,7 @@
   * make a multiple test
   * par $user: function-name, closure, static method "class::method" or array($class,'method')
   * par $data: multiple array with comment as key and array(par,par2,..,expectedValue)
+  * return array results
   */  
   public function checkMultiple($userFct,array $data) {
     $backtrace = debug_backtrace();
@@ -309,6 +321,7 @@
   * param $closure a function with testobject 
   * param $exceptionTyp the exception or "" for all
   * param $comment set a title/comment, if method start use this comment will be overwerite
+  * return array results
   */
   public function checkException($closure,$exceptionTyp = "",$comment=''){
     
@@ -358,6 +371,14 @@
     return $this->obContent;
   }
   
+ /*
+  * return float: seconds from last test start
+  */  
+  public function time(){
+    return microtime(true)-$this->startMcTime;
+  }
+    
+  
 
  /*
   * return a array of resultarrays from all collected checks
@@ -380,6 +401,7 @@
 
  /*
   * return last result or result with the specified key
+  * param key string 'line', 'comm', 'mctime'
   * return false if error
   */
   public function getLastResult($key = null){
@@ -467,9 +489,12 @@
   * If you want present text or html without filter, 
   * call setResultFilter with parameter empty string
   * $filtername = 'html' : present strings without filter, other with "var_export"
+  * return $oldFilter (>V1.42)
   */  
   public function setResultFilter($filterName = 'default'){
+    $oldFilter = $this->filterFkt;
     $this->filterFkt = $filterName;
+    return $oldFilter;
   }
   
  /*
@@ -487,6 +512,14 @@
   public function setOutputVariant($variant){
     $this->outputVariant = strtolower($variant);
   }
+  
+ /*
+  * set variant for output print Only Errors
+  */  
+  public function setOutputOnlyErrors($trueOrFalse){
+    $this->outputOnlyErrors = $trueOrFalse;
+  }
+
 
  /*
   * get count (cycle number) for POST-cykles
@@ -510,6 +543,9 @@
     //
     $tableArr = array();
     foreach($testResults as $key => $el){
+      //check if only print errors
+      if($this->outputOnlyErrors AND $el['test'] == 'Ok') continue;
+      
       $comment = $el['comm'] ? $el['comm'] : ("Test ".($key+1));
       $tableArr[$key]['comm'] = htmlspecialchars($comment, ENT_QUOTES, 'UTF-8');
       
@@ -530,7 +566,10 @@
       //test Ok
       $tableArr[$key]['test'] = $el['test'] ? 'Ok' : '<div class="test_Error">Error</div>';;
     }
-    $html = $this->table($tableAttribut,array('Comment','Line','Code','Result','Test'),$tableArr);
+    if(!empty($tableArr)) {
+      $html = $this->table($tableAttribut,array('Comment','Line','Code','Result','Test'),$tableArr);
+    }
+    else $html = "";
     if($clearResults) $this->checks = array();
     return $html;
   }
@@ -547,7 +586,7 @@
     $this->addCSS(); //load Defaults if CSS not set
     if($this->css != ""){
       $html .= '
-      <style type="text/css">'.$this->css.'
+      <style>'.$this->css.'
       </style>
     ';
     }
@@ -821,6 +860,18 @@
   }
   
  /*
+  * echo gd-rsource
+  */
+  public function echoImg($gdResource){
+    ob_start();
+    @imagepng($gdResource);
+    $out = '<img style="max-height:20rem;max-width:20rem;"'; 
+    $out .= 'src="data:image/png;base64,';
+    echo $out.base64_encode(ob_get_clean()).'"/>';
+  }
+
+  
+ /*
   * get Error-Name from given code-number
   */
   private function getErrName($errorCode) {
@@ -850,7 +901,7 @@
       if(strlen($code) > $this->maxResultChars) { 
         $code = substr($code,0,$this->maxResultChars).' ..';
       }
-      $code = htmlspecialchars($code,ENT_NOQUOTES,'UTF-8',false);
+      $code = htmlspecialchars($code,ENT_NOQUOTES|ENT_IGNORE,'UTF-8',false);
     }
     elseif($this->filterFkt == 'html') {
       if(is_string($result)){
