@@ -66,6 +66,19 @@ fact() test 1|22|$result = fact(3);<br/>$expected = 6;<br/>$t->checkEqual($resul
 fact() test 2|27|$result = fact(5);<br/>$expected = 120;<br/>$t->checkEqual($result,$expected);|[0.0 ms]<br/>120|Ok
 fact() test 3|32|$result = fact(-1);<br/>$expected = false;<br/>$t->checkEqual($result,$expected);|[0.0 ms]<br/>1|**Error**
 
+### Class-Info
+
+| Info | Value |
+| :--- | :---- |
+| Declaration | class PHPcheck |
+| File | phpcheck.php |
+| Date/Time modify File | 2019-01-24 10:35:34 |
+| File-Size | 30 KByte |
+| MD5 File | 3330f1d07eba8f52929976c3372577f1 |
+| Version | 1.42 (const VERSION = 1.42) |
+| Date | 2018-10-30 |
+
+
 ### Public Methods
 
 | Methods and Parameter | Description/Comments |
@@ -113,7 +126,19 @@ fact() test 3|32|$result = fact(-1);<br/>$expected = false;<br/>$t->checkEqual($
 | public function checkErrorHandler($errcode, $errmsg, $fileName, $line) | the internal error handler, do not use |
 | public function echoImg($gdResource) | echo gd-rsource |
 
+### Public Propertys
 
+| Methods and Parameter | Description/Comments |
+| :-------------------- | :------------------- |
+|  public $cmpFloatPrecision = self::DEFAULT_FLOAT_PRECISION; |  |
+
+### Constants
+
+| Declaration/Name | Value | Description/Comments |
+| :--------------- | :---- | :------------------- |
+|  const version = &#039;1.42&#039;; | &#039;1.42&#039; |   |
+|  const DISPLAY_PRECISION = 16; | 16 |   |
+|  const DEFAULT_FLOAT_PRECISION = 14; | 14 |   |
 
 ### Demos
 
