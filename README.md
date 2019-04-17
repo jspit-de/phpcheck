@@ -128,7 +128,7 @@ fact() test 3|32|$result = fact(-1);<br/>$expected = false;<br/>$t->checkEqual($
 
 ### Public Propertys
 
-| Methods and Parameter | Description/Comments |
+| Property and Defaults | Description/Comments |
 | :-------------------- | :------------------- |
 |  public $cmpFloatPrecision = self::DEFAULT_FLOAT_PRECISION; |  |
 
