@@ -2,10 +2,10 @@
 /**
 .---------------------------------------------------------------------------.
 |  Software: PHPcheck - simple Test class for output in web browser         |
-|   Version: 1.42                                                           |
-|      Date: 2018-10-30                                                     |
+|   Version: 1.54                                                           |
+|      Date: 2020-12-22                                                     |
 | ------------------------------------------------------------------------- |
-| Copyright © 2015..2018 Peter Junk (alias jspit). All Rights Reserved.     |
+| Copyright © 2015..2020 Peter Junk (alias jspit). All Rights Reserved.     |
 | ------------------------------------------------------------------------- |
 |   License: Distributed under the Lesser General Public License (LGPL)     |
 |            http://www.gnu.org/copyleft/lesser.html                        |
@@ -15,7 +15,7 @@
 '---------------------------------------------------------------------------'
  */
  class PHPcheck{
-  const version = '1.42';
+  const version = '1.54';
   const DISPLAY_PRECISION = 16;
   const DEFAULT_FLOAT_PRECISION = 14;
   //
@@ -80,6 +80,8 @@
   private $headline = "";
   
   private $outputOnlyErrors = false;
+  
+  public static $instance;
  
  /* 
   * create a instance of phpcheck
@@ -87,7 +89,7 @@
   public function __construct(){
     set_error_handler(array($this,'checkErrorHandler'));
     ini_set('serialize_precision', self::DISPLAY_PRECISION);
-    
+    register_shutdown_function(array($this,'shutDownHandle'), $this);
     $this->tsInstanceCreate = microtime(true);
   }
   
@@ -152,16 +154,10 @@
   */  
   public function checkEqual($actual,$expected,$comment='', $delta = 0){
     $mTime = microtime(true);
-    $equal = $expected===$actual;
-    if(!$equal){
-      if($delta > 0) {
-        //for delta > 0 compare as float
-        $equal = abs($expected-$actual) <= $delta ;
-      }
-      elseif(is_float($actual) OR is_float($expected)) {
-        $equal = $this->roundPrecision($actual,$this->cmpFloatPrecision) 
-               == $this->roundPrecision($expected,$this->cmpFloatPrecision);        
-      }
+    $equal = $this->isEqual($actual, $expected, $delta);
+    if($equal === null){
+       $this->lastWarning[] = "<b>Error Phpcheck: checkEqual does not accept these variables</b><br>\n";
+       $equal = false;
     }
     $this->addCheckArr($actual,$equal,$comment,$mTime);
     $lastResult = $this->getLastResult();
@@ -169,6 +165,27 @@
     return $lastResult;
   }
 
+ /*
+  * finish a test
+  * param $actual the actual result
+  * param $comp the comparison
+  * param $comment new comment
+  * param $delta if not 0, then check abs($comp-$actual) <= $delta
+  * return array results
+  */  
+  public function checkNotEqual($actual,$comp,$comment='', $delta = 0){
+    $mTime = microtime(true);
+    $equal = $this->isEqual($actual, $comp, $delta);
+    if($equal === null){
+       $this->lastWarning[] = "<b>Error Phpcheck: checkNotEqual does not accept these variables</b><br>\n";
+       $equal = true;
+    }
+    $this->addCheckArr($actual,!$equal,$comment,$mTime);
+    $lastResult = $this->getLastResult();
+    $this->startMcTime = microtime(true);
+    return $lastResult;
+  }
+  
  /*
   * finish a test
   * param $actual the actual result, if is string it will be show as hex-string
@@ -556,8 +573,13 @@
       //Result
       $result = "";
       foreach($el['warning'] as $error) {
-        $result .= $this->getErrName($error["errcode"]).": ".$error["errmsg"];
-        $result .= " (".basename($error["fileName"])." line ".$error["line"].")<br>";
+        if(is_array($error) AND array_key_exists("errcode", $error)) {
+          $result .= $this->getErrName($error["errcode"]).": ".$error["errmsg"];
+          $result .= " (".basename($error["fileName"])." line ".$error["line"].")<br>";
+        }
+        else {
+          $result .= $error; 
+        }
       }
       $result .= $el['mctime'] ? ('['.sprintf('%.1f',$el['mctime']*1000).' ms]<br>') : "";
       //$result .= $this->filter($el['result']);
@@ -776,7 +798,73 @@
     $f =(float)sprintf('%.'.$p.'e',$floatValue);
     return $f;
   }
+  
+ /*
+  * @param $actual mixed test result
+  * @param $expected mixed expected result
+  * @param $delta mixed $delta>0 work as eps, "P10" is a rel. Precision
+  * @return true/false,null if can not compare
+  */
+  public function isEqual($actual, $expected, $delta = 0)
+  {
+    if(is_scalar($actual) AND is_scalar($actual)) {
+      $equal = $expected===$actual;
+      if(!$equal){
+        $floatPrecision = $this->cmpFloatPrecision;
+        if(is_string($delta) AND preg_match('~^p(\d{1,2})$~i',$delta,$match)) {
+          $floatPrecision = $match[1];
+        }
+        if($delta > 0) {
+          //for delta > 0 compare as float
+          $equal = abs($expected-$actual) <= $delta ;
+        }
+        elseif(is_float($actual) AND is_float($expected)) {
+          $equal = $this->roundPrecision($actual,$floatPrecision) 
+                 == $this->roundPrecision($expected,$floatPrecision);        
+        }
+      }
+    }
+    else{
+      try{
+        $equal = $actual === $expected || serialize($actual) === serialize($expected);
+      } catch(Exception $e) {
+          $equal = null;
+      }
+    }
+    return $equal;
+  }
 
+/*
+ * return true if value is a float and negative
+ * also differentiates between -0.0 and +0.0
+ * @param mixed $value
+ * @return true or false
+ */
+  public function isNegativFloat($value){
+    return is_float($value) AND ord(pack('E',$value)) & 0x80;
+  }
+
+ /*
+  * echo gd-rsource
+  */
+  public function echoImg($gdResource){
+    ob_start();
+    @imagepng($gdResource);
+    $out = '<img style="max-height:20rem;max-width:20rem;"'; 
+    $out .= 'src="data:image/png;base64,';
+    echo $out.base64_encode(ob_get_clean()).'"/>';
+  }
+
+/*
+ * Simulates a file with a given content. Returns a filename.
+ * The file name can be used for file_get_contents() etc. 
+ * No file is physically created.
+ * @param string $content
+ * @return string fileName
+ */
+ public function simulateFile($content){
+   return 'data://text/plain,'.urlencode($content);
+ }
   
 /*
  * protected
@@ -835,7 +923,12 @@
     //table 
     $html .= '<tbody>'."\r\n";    
     foreach($dataArr as $k => $subArr) {
-      $html .= '<tr>'."\r\n";
+      //Anchor in comment ?
+      $trTag = '<tr>';
+      if(preg_match('~#([a-z]+)~i', $subArr['comm'], $match)){
+        $trTag = '<tr id="'.strtolower($match[1]).'">';
+      }
+      $html .= $trTag."\r\n";
       foreach($subArr as $i => $colValue) {
         $html .= '<td>'.$colValue."</td>\r\n";
       }
@@ -859,16 +952,18 @@
     return false;  //do normal error handling
   }
   
- /*
-  * echo gd-rsource
-  */
-  public function echoImg($gdResource){
-    ob_start();
-    @imagepng($gdResource);
-    $out = '<img style="max-height:20rem;max-width:20rem;"'; 
-    $out .= 'src="data:image/png;base64,';
-    echo $out.base64_encode(ob_get_clean()).'"/>';
+
+  //internal :not use this method  
+  public static function shutDownHandle($objPhpcheck = null)
+  {
+    $errors = error_get_last();
+    if(empty($errors) OR $objPhpcheck === null) return;
+    if($errors['type'] == E_ERROR) {
+      echo $objPhpcheck->getHTML();
+      echo "<br><b>Test incomplete: Fatal Error</b>";
+    }  
   }
+
 
   
  /*
@@ -961,6 +1056,4 @@
     }
     return true;
   }
-  
-
 }
