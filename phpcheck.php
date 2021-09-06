@@ -2,10 +2,10 @@
 /**
 .---------------------------------------------------------------------------.
 |  Software: PHPcheck - simple Test class for output in web browser         |
-|   Version: 1.54                                                           |
-|      Date: 2020-12-22                                                     |
+|   Version: 1.58                                                           |
+|      Date: 2021-09-06                                                     |
 | ------------------------------------------------------------------------- |
-| Copyright © 2015..2020 Peter Junk (alias jspit). All Rights Reserved.     |
+| Copyright © 2015..2021 Peter Junk (alias jspit). All Rights Reserved.     |
 | ------------------------------------------------------------------------- |
 |   License: Distributed under the Lesser General Public License (LGPL)     |
 |            http://www.gnu.org/copyleft/lesser.html                        |
@@ -15,7 +15,7 @@
 '---------------------------------------------------------------------------'
  */
  class PHPcheck{
-  const version = '1.54';
+  const version = '1.58';
   const DISPLAY_PRECISION = 16;
   const DEFAULT_FLOAT_PRECISION = 14;
   //
@@ -41,7 +41,7 @@
   .Send_Form_Element{
     position:absolute;
     top: -30px;
-    left:650px;
+    left:950px;
   }
   .test_Error {
     font:bold 12pt Arial;
@@ -87,8 +87,9 @@
   * create a instance of phpcheck
   */
   public function __construct(){
-    set_error_handler(array($this,'checkErrorHandler'));
-    ini_set('serialize_precision', self::DISPLAY_PRECISION);
+    set_error_handler(array($this,'_internalErrorHandler'));
+    ini_set('serialize_precision', (string)self::DISPLAY_PRECISION);
+    ini_set('highlight.comment',"#00C000");
     register_shutdown_function(array($this,'shutDownHandle'), $this);
     $this->tsInstanceCreate = microtime(true);
   }
@@ -271,7 +272,7 @@
  
  /*
   * make a multiple test
-  * par $user: function-name, closure, static method "class::method" or array($class,'method')
+  * par $userFct: function-name, closure, static method "class::method" or array($class,'method')
   * par $data: multiple array with comment as key and array(par,par2,..,expectedValue)
   * return array results
   */  
@@ -581,7 +582,11 @@
           $result .= $error; 
         }
       }
-      $result .= $el['mctime'] ? ('['.sprintf('%.1f',$el['mctime']*1000).' ms]<br>') : "";
+      if(isset($el['mctime'])){
+        $timeMs = $el['mctime']*1000;
+        $timeFormat = $timeMs < 10 ? '%.3f' : '%.1f'; 
+        $result .= '['.sprintf($timeFormat,$timeMs).' ms]<br>';
+      }
       //$result .= $this->filter($el['result']);
       $result .= $el['filterResult'];
       $tableArr[$key]['result'] = $result;
@@ -648,12 +653,17 @@
   * get total Info (Number of checks, errors..) as HTML
   */
   public function getTotalInfo(){
-    $totalTime = sprintf("%.2f",microtime(true)-$this->tsInstanceCreate);
+    $totalTime = sprintf("%.3f",microtime(true)-$this->tsInstanceCreate);
     $html = '<b>'.basename($this->fileName);
     $html .= ' Total: '.$this->getCheckCount().' Tests, '.$this->geterrorCount().' Errors</b><br>';
     if($this->headline != "") $html .= $this->headline . "<br>";
-    $html .= 'PHPCheck V'.self::version.', OS: '.PHP_OS;
-    $html .= ', PHP-Version: '.PHP_VERSION.' ('. PHP_INT_SIZE * 8 .' Bit), Time: '.$totalTime.' s';
+    $phpOS = stripos(PHP_OS,'win') === 0 ? ('WIN '.php_uname('v')) : PHP_OS;
+    $html .= 'PHPCheck V'.self::version.', OS: '.$phpOS.', Machine: '.php_uname('m');
+    $opcacheInfo = "";
+    if(function_exists('opcache_is_script_cached')){
+      $opcacheInfo = " OPcache";
+    }
+    $html .= ', PHP-Version: '.PHP_VERSION.' ('. PHP_INT_SIZE * 8 .' Bit'.$opcacheInfo.'), Time: '.$totalTime.' s';
     $html .= ', Memory: '.sprintf('%.1f',memory_get_peak_usage(true)/1024/1024).'M ('.ini_get('memory_limit').')';
     $html .= "<br/>\r\n";
     return $html;
@@ -807,7 +817,7 @@
   */
   public function isEqual($actual, $expected, $delta = 0)
   {
-    if(is_scalar($actual) AND is_scalar($actual)) {
+    if(is_scalar($actual) AND is_scalar($expected)) {
       $equal = $expected===$actual;
       if(!$equal){
         $floatPrecision = $this->cmpFloatPrecision;
@@ -861,6 +871,7 @@
  * No file is physically created.
  * @param string $content
  * @return string fileName
+ * file_exists($simulateFile) return false;
  */
  public function simulateFile($content){
    return 'data://text/plain,'.urlencode($content);
@@ -942,7 +953,7 @@
  /*
   * the internal error handler, do not use
   */  
-  public function checkErrorHandler($errcode, $errmsg, $fileName, $line) {
+  public function _internalErrorHandler($errcode, $errmsg, $fileName, $line) {
     $this->lastWarning[] = array(
       "errcode" => $errcode,
       "errmsg" => $errmsg,
@@ -1052,7 +1063,7 @@
     foreach($needles as $needle) {
       $curPos = strpos($haystack,$needle,$oldPos);
       if($curPos === false OR $curPos < $oldPos) return false;
-      $oldPos = $curPos;
+      $oldPos = $curPos+1;
     }
     return true;
   }
