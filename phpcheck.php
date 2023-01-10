@@ -1,11 +1,12 @@
 <?php
+//namespace Jspit;
 /**
 .---------------------------------------------------------------------------.
 |  Software: PHPcheck - simple Test class for output in web browser         |
-|   Version: 1.58                                                           |
-|      Date: 2021-09-06                                                     |
+|   Version: 1.65                                                           |
+|      Date: 2022-12-21                                                     |
 | ------------------------------------------------------------------------- |
-| Copyright © 2015..2021 Peter Junk (alias jspit). All Rights Reserved.     |
+| Copyright © 2015..2022 Peter Junk (alias jspit). All Rights Reserved.     |
 | ------------------------------------------------------------------------- |
 |   License: Distributed under the Lesser General Public License (LGPL)     |
 |            http://www.gnu.org/copyleft/lesser.html                        |
@@ -15,11 +16,9 @@
 '---------------------------------------------------------------------------'
  */
  class PHPcheck{
-  const version = '1.58';
+  const VERSION = '1.65';
   const DISPLAY_PRECISION = 16;
-  const DEFAULT_FLOAT_PRECISION = 14;
-  //
-  public $cmpFloatPrecision = self::DEFAULT_FLOAT_PRECISION;
+  const DEFAULT_FLOAT_PRECISION = 15;
   //CSS for getHtml
   private $defaultCss = 'table.phpchecktab {
     border-collapse: collapse; 
@@ -37,11 +36,6 @@
   }
   #form_phpcheck {
     position:relative;
-  }
-  .Send_Form_Element{
-    position:absolute;
-    top: -30px;
-    left:950px;
   }
   .test_Error {
     font:bold 12pt Arial;
@@ -80,6 +74,8 @@
   private $headline = "";
   
   private $outputOnlyErrors = false;
+
+  private $tmpFileName = "";
   
   public static $instance;
  
@@ -93,7 +89,11 @@
     register_shutdown_function(array($this,'shutDownHandle'), $this);
     $this->tsInstanceCreate = microtime(true);
   }
-  
+
+  public function __destruct(){
+    $this->deleteTmpFile();
+  }
+
  /* 
   * the method marks the start of new test
   * param $comment set a title/comment of following test  
@@ -151,9 +151,11 @@
   * param $expected the expected result
   * param $comment new comment
   * param $delta if not 0, then check abs($expected-$actual) <= $delta
+  *  string 'Pn' with n=1..15 for precision n numbers 
+  *  null default-precision
   * return array results
   */  
-  public function checkEqual($actual,$expected,$comment='', $delta = 0){
+  public function checkEqual($actual,$expected,$comment='', $delta = null){
     $mTime = microtime(true);
     $equal = $this->isEqual($actual, $expected, $delta);
     if($equal === null){
@@ -171,10 +173,10 @@
   * param $actual the actual result
   * param $comp the comparison
   * param $comment new comment
-  * param $delta if not 0, then check abs($comp-$actual) <= $delta
+  * param $delta if not null, then check abs($comp-$actual) <= $delta
   * return array results
   */  
-  public function checkNotEqual($actual,$comp,$comment='', $delta = 0){
+  public function checkNotEqual($actual,$comp,$comment='', $delta = null){
     $mTime = microtime(true);
     $equal = $this->isEqual($actual, $comp, $delta);
     if($equal === null){
@@ -224,6 +226,9 @@
     //else ob_get_clean();
     $htmlErrors = $this->getValidateHtmlError($actual,$ignoreLibXmlErrors);
     $testResult = $htmlErrors === "";
+    if($testResult === false) {
+      trigger_error($htmlErrors,E_USER_WARNING);
+    }
     if($containStrings !== "") {
       $testResult = $testResult && $this->strContains($actual,$containStrings);
     }
@@ -352,7 +357,7 @@
       }
       catch(exception $e){
         $testResult = $exceptionTyp !== "" ? $e instanceOf $exceptionTyp : true;
-        $actual = "Exception: ".get_class($e);
+        $actual = "Exception: ".get_class($e).' "'.$e->getMessage().'"';
       }
     }
     else {
@@ -557,6 +562,7 @@
   * param: set $clearResults = false if you may not delete collected results
   */
   public function getTable($tableAttribut = "", $clearResults = true){
+    $errorId = 0;
     $testResults = $this->getResults();
     //
     $tableArr = array();
@@ -591,7 +597,10 @@
       $result .= $el['filterResult'];
       $tableArr[$key]['result'] = $result;
       //test Ok
-      $tableArr[$key]['test'] = $el['test'] ? 'Ok' : '<div class="test_Error">Error</div>';;
+      $tableArr[$key]['test'] = $el['test'] 
+        ? 'Ok' 
+        : '<div id="error'.(++$errorId).'" class="test_Error">Error</div>'
+      ;
     }
     if(!empty($tableArr)) {
       $html = $this->table($tableAttribut,array('Comment','Line','Code','Result','Test'),$tableArr);
@@ -648,6 +657,20 @@
     ';
     return $html;
   }
+  // get OS how Linux, Win
+  public static function getOS(){
+    return trim(stripos(PHP_OS,'win') === 0 ? ('WIN '.php_uname('v')) : PHP_OS);
+  }
+
+  //get CPU Name (Machine type)
+  public static function getCpu(){
+    $name = php_uname('m');
+    //workaround bug
+    if(strlen($name) > 20 AND stripos($name,'linux') !== false){
+      $name = `uname -m`;
+    }
+    return trim($name);  
+  }
   
  /*
   * get total Info (Number of checks, errors..) as HTML
@@ -655,10 +678,19 @@
   public function getTotalInfo(){
     $totalTime = sprintf("%.3f",microtime(true)-$this->tsInstanceCreate);
     $html = '<b>'.basename($this->fileName);
-    $html .= ' Total: '.$this->getCheckCount().' Tests, '.$this->geterrorCount().' Errors</b><br>';
+    $strError = ($errCount = $this->geterrorCount()) 
+      ? ('<a href="?error=1">'.$errCount.' Errors</a> <a href="#error1"> -&gt;first</a>')
+      : ' 0 Errors';
+    $html .= ' Total: '.$this->getCheckCount().' Tests, '.$strError;
+    $html .= ', <a href="?">↻all</a></b><br>';
     if($this->headline != "") $html .= $this->headline . "<br>";
     $phpOS = stripos(PHP_OS,'win') === 0 ? ('WIN '.php_uname('v')) : PHP_OS;
-    $html .= 'PHPCheck V'.self::version.', OS: '.$phpOS.', Machine: '.php_uname('m');
+    $html .= 'PHPCheck V'.self::VERSION.', OS: '.$phpOS.', Machine: ';
+    $machineType = php_uname('m');
+    if(strlen($machineType) > 20) {  //workaround bug
+      $machineType = preg_replace('~(^| )[a-z]+|#\d+|[0-9\-.]+([a-z][^ ]+)| ~i','$2',$machineType);
+    }
+    $html .= $machineType;
     $opcacheInfo = "";
     if(function_exists('opcache_is_script_cached')){
       $opcacheInfo = " OPcache";
@@ -685,15 +717,16 @@
     $html .= $this->getTotalInfo();
     
     if($this->outputVariant == "form") {
-      $html .= '<form id="form_phpcheck" method="POST">';
-    }
-    $html .= $this->getTable('class="phpchecktab"');
-    if($this->outputVariant == "form") {
-      //$postZyklus = isset($_POST[$this->nameSubmitButton]) ? ($_POST[$this->nameSubmitButton] + 1) : 0;
       $postZyklus = $this->getPostCount() + 1;
       $nameSubmit = $this->nameSubmitButton."[".$postZyklus."]";
-      $html .= '<div class="Send_Form_Element"><input type="submit" name="'.$nameSubmit;
-      $html .= '"  value="Send Form Elements as POST"> Cycle:'.$postZyklus.'</div></form>';
+      $html .= '<form id="form_phpcheck" method="POST"><br>';
+      $html .= '<input type="submit" name="'.$nameSubmit;
+      $html .= '"  value="Send Form Elements as POST"> Cycle:'.$postZyklus."<br><br>\r\n";
+    }
+    $html .= $this->getTable('class="phpchecktab"');
+
+    if($this->outputVariant == "form") {
+      $html .= '</form>';
     }
     if($withFooter) $html .= $this->gethtmlFooter();
     
@@ -741,7 +774,7 @@
       $html = '<body>'.$html.'</body>';
     }
     $code = '<?xml encoding="utf-8" ?><!DOCTYPE html>'.$html;
-    $doc = new DOMDocument();
+    $doc = new \DOMDocument();
     $previousUseErrors = libxml_use_internal_errors(true);
     $loadError = !$doc->loadHTML($code); 
     $errors = libxml_get_errors();
@@ -796,6 +829,28 @@
     }
     return "";
   }
+
+ /*
+  * @return number of lines
+  *  return false if error
+  * @param string filename
+  */
+  public function getNumberOfLines($fullFileName){
+    $f = fopen($fullFileName,'rb');
+    if($f === false) return false;
+    $lines = 0;
+    $buffer = "";
+    while(!feof($f)){
+      $buffer = fread($f,8192);
+      $lines += substr_count($buffer, "\n"); //8192
+    }
+    fclose($f);
+    if (strlen($buffer) > 0 && $buffer[-1] != "\n") {
+        //last line without newline
+        ++$lines;
+    }
+    return $lines;
+  }
   
  /*
   * @return Float-Value with reduced precision
@@ -812,31 +867,33 @@
  /*
   * @param $actual mixed test result
   * @param $expected mixed expected result
-  * @param $delta mixed $delta>0 work as eps, "P10" is a rel. Precision
+  * @param $delta mixed $delta>=0 work as eps for float-values,
+  *  'Pn' with n=1..15 for precision n numbers or null default-precision
   * @return true/false,null if can not compare
   */
-  public function isEqual($actual, $expected, $delta = 0)
+  public function isEqual($actual, $expected, $delta = null)
   {
-    if(is_scalar($actual) AND is_scalar($expected)) {
-      $equal = $expected===$actual;
-      if(!$equal){
-        $floatPrecision = $this->cmpFloatPrecision;
-        if(is_string($delta) AND preg_match('~^p(\d{1,2})$~i',$delta,$match)) {
-          $floatPrecision = $match[1];
-        }
-        if($delta > 0) {
-          //for delta > 0 compare as float
-          $equal = abs($expected-$actual) <= $delta ;
-        }
-        elseif(is_float($actual) AND is_float($expected)) {
-          $equal = $this->roundPrecision($actual,$floatPrecision) 
-                 == $this->roundPrecision($expected,$floatPrecision);        
-        }
+    if($equal = $expected === $actual) return true;
+    //compare float values with eps
+    if(is_float($actual) AND is_float($expected)) {
+      if($delta === 0) return false;  //exact comparison required
+      //determine delta automatically if null
+      if($delta === null) {
+        $delta = (abs($actual) + abs($expected)) * pow(10,-self::DEFAULT_FLOAT_PRECISION);
       }
+      elseif(is_string($delta) AND preg_match('~^p(\d{1,2})$~i',$delta,$match)){
+        //use 'Pnumber' for Precision
+        $delta = (abs($actual) + abs($expected)) * pow(10,-$match[1]);
+      }
+      $equal = abs($expected-$actual) <= $delta ;
+    }
+    elseif(is_scalar($actual) OR is_scalar($expected)) {
+      $equal = false;
     }
     else{
+      //objects and arrays
       try{
-        $equal = $actual === $expected || serialize($actual) === serialize($expected);
+        $equal = serialize($actual) === serialize($expected);
       } catch(Exception $e) {
           $equal = null;
       }
@@ -855,7 +912,7 @@
   }
 
  /*
-  * echo gd-rsource
+  * echo gd-rsource or gd-object
   */
   public function echoImg($gdResource){
     ob_start();
@@ -875,6 +932,27 @@
  */
  public function simulateFile($content){
    return 'data://text/plain,'.urlencode($content);
+ }
+
+/*
+ * Create a temporary file with a given content. Returns a filename.
+ * The file name can be used for file_get_contents() etc. 
+ * @param string $content
+ * @return string fileName
+ */
+ public function tmpFile($content = " "){
+  if(empty($this->tmpFileName)){
+    $this->tmpFileName = tempnam(sys_get_temp_dir(), 'chk');
+  }
+  file_put_contents($this->tmpFileName,(string)$content);
+  return $this->tmpFileName;
+ }
+
+ public function deleteTmpFile(){
+  if(!empty($this->tmpFileName) and file_exists($this->tmpFileName)){
+    unlink($this->tmpFileName);
+    $this->tmpFileName = "";  
+  }
  }
   
 /*
@@ -934,12 +1012,14 @@
     //table 
     $html .= '<tbody>'."\r\n";    
     foreach($dataArr as $k => $subArr) {
-      //Anchor in comment ?
-      $trTag = '<tr>';
-      if(preg_match('~#([a-z]+)~i', $subArr['comm'], $match)){
-        $trTag = '<tr id="'.strtolower($match[1]).'">';
+        if(preg_match('~#([a-z][a-z0-9\-_:.]*)~i', $subArr['comm'], $match)){
+        //Anchor in comment 
+        $id = strtolower($match[1]);
       }
-      $html .= $trTag."\r\n";
+      else {
+        $id = "L".$subArr['line'];
+      }
+      $html .= '<tr id="'.$id.'">'."\r\n";
       foreach($subArr as $i => $colValue) {
         $html .= '<td>'.$colValue."</td>\r\n";
       }
@@ -967,9 +1047,17 @@
   //internal :not use this method  
   public static function shutDownHandle($objPhpcheck = null)
   {
+    if($objPhpcheck !== null
+      AND !empty($objPhpcheck->tmpFileName) 
+      AND file_exists($objPhpcheck->tmpFileName)
+    ){
+      unlink($objPhpcheck->tmpFileName);
+    }
+  
     $errors = error_get_last();
     if(empty($errors) OR $objPhpcheck === null) return;
     if($errors['type'] == E_ERROR) {
+      echo "<b>Test incomplete: Fatal Error</b><br>";
       echo $objPhpcheck->getHTML();
       echo "<br><b>Test incomplete: Fatal Error</b>";
     }  
