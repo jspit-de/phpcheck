@@ -98,7 +98,7 @@ http://jspit.de/check/phpcheck.class.sqliteobjectstore.php
 
 #### Test a GD-Image Class
 
-http://jspit.de/check/phpcheck.class.gdimage.php
+http://jspit.de/check/phpcheck.jspitgdimage.php
 
 #### Autoloadertest
 
