@@ -74,6 +74,10 @@ http://jspit.de/tools/classdoc.php?class=phpcheck
 
 ### Demos
 
+http://jspit.de/check/phpcheck.demo.php
+
+http://jspit.de/check/phpcheck.democheckmethods.php
+
 #### Unit Test class dt
 
 http://jspit.de/check/phpcheck.class.dt.php
