@@ -6,6 +6,7 @@ Simple Test class for output in web browser
 
 - Supports module and interaction tests
 - Result presentation as a table in the browser
+- Execution time of each test, accumulated time and average
 - only pure PHP (>= V7.0) required, no development environments, extensions, frameworks or installations necessary
 - runs on all target platforms (all web hosts up to embedded controllers)
 
@@ -57,15 +58,14 @@ echo $t->gethtml();
 
 ### View in browser
 
-**phpcheck.demo2.php Total: 3 Tests, 1 Errors**  
-PHPCheck V1.3.13, OS: Linux, PHP-Version: 7.1.7 (64 Bit), Time: 0.00 s, Memory: 2.0M (128M)
+**phpcheck.demo2.php Total: 3 Tests, 1 Errors ->first, ↻all**  
+PHPCheck V1.66, OS: WIN build 19045 (Windows 10), Machine: AMD64, PHP-Version: 8.2.0 (64 Bit), Time: 0.010ms (AVG: 0.003ms), Memory: 2.0M (512M)
 
 **Comment** | **Line** | **Code** | **Result** | **Test**
 ----------- | -------------|----------|-----------------|-----------
-fact() test 1|22|$result = fact(3);<br/>$expected = 6;<br/>$t->checkEqual($result,$expected);|[0.0 ms]<br/>6|Ok
-fact() test 2|27|$result = fact(5);<br/>$expected = 120;<br/>$t->checkEqual($result,$expected);|[0.0 ms]<br/>120|Ok
-fact() test 3|32|$result = fact(-1);<br/>$expected = false;<br/>$t->checkEqual($result,$expected);|[0.0 ms]<br/>1|**Error**
-
+fact() test 1|22|$result = fact(3);<br/>$expected = 6;<br/>$t->checkEqual($result,$expected);|[0.005 ms]<br/>6|Ok
+fact() test 2|27|$result = fact(5);<br/>$expected = 120;<br/>$t->checkEqual($result,$expected);|[0.003 ms]<br/>120|Ok
+fact() test 3|32|$result = fact(-1);<br/>$expected = false;<br/>$t->checkEqual($result,$expected);|[0.002 ms]<br/>1|**Error**
 
 
 ### Documentation
@@ -86,15 +86,19 @@ http://jspit.de/check/phpcheck.class.dt.php
 
 http://jspit.de/check/phpcheck.class.debug.php
 
-#### Test for a method to create an HTML Table 
+#### Test for a HTML table builder
 
-http://jspit.de/check/phpcheck.table.class.html.php
+http://jspit.de/check/phpcheck.table.php
 
 #### Interactiv tests for methods to create an HTML inputs
 
 http://jspit.de/check/phpcheck.input.class.html.php
 
 http://jspit.de/check/phpcheck.select.class.html.php
+
+#### Test a Template Class
+
+http://jspit.de/check/phpcheck.jspittemplate.php
 
 #### Test class.sqliteobject.store
 

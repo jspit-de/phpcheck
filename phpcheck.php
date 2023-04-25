@@ -3,10 +3,10 @@
 /**
 .---------------------------------------------------------------------------.
 |  Software: PHPcheck - simple Test class for output in web browser         |
-|   Version: 1.65                                                           |
-|      Date: 2022-12-21                                                     |
+|   Version: 1.66                                                           |
+|      Date: 2023-04-25                                                     |
 | ------------------------------------------------------------------------- |
-| Copyright © 2015..2022 Peter Junk (alias jspit). All Rights Reserved.     |
+| Copyright © 2015..2023 Peter Junk (alias jspit). All Rights Reserved.     |
 | ------------------------------------------------------------------------- |
 |   License: Distributed under the Lesser General Public License (LGPL)     |
 |            http://www.gnu.org/copyleft/lesser.html                        |
@@ -16,7 +16,7 @@
 '---------------------------------------------------------------------------'
  */
  class PHPcheck{
-  const VERSION = '1.65';
+  const VERSION = '1.66';
   const DISPLAY_PRECISION = 16;
   const DEFAULT_FLOAT_PRECISION = 15;
   //CSS for getHtml
@@ -219,7 +219,7 @@
   public function checkHTML($actual = null, $containStrings = "", $ignoreLibXmlErrors = false){
     $mTime = microtime(true);
     
-    if($actual === null AND $this->obStartCalled = true) {
+    if($actual === null AND $this->obStartCalled === true) {
       $actual = ob_get_clean();
       $this->obStartCalled = false;
     }
@@ -677,11 +677,15 @@
   */
   public function getTotalInfo(){
     $totalTime = sprintf("%.3f",microtime(true)-$this->tsInstanceCreate);
+    //sum of all mctimes
+    $sumTime = sprintf("%.3f", array_sum(array_column($this->checks,'mctime')) * 1000);
     $html = '<b>'.basename($this->fileName);
     $strError = ($errCount = $this->geterrorCount()) 
       ? ('<a href="?error=1">'.$errCount.' Errors</a> <a href="#error1"> -&gt;first</a>')
       : ' 0 Errors';
-    $html .= ' Total: '.$this->getCheckCount().' Tests, '.$strError;
+    $checkCount = $this->getCheckCount();
+    $avgTime = sprintf("%.3f", $sumTime/$checkCount);
+    $html .= ' Total: '.$checkCount.' Tests, '.$strError;
     $html .= ', <a href="?">↻all</a></b><br>';
     if($this->headline != "") $html .= $this->headline . "<br>";
     $phpOS = stripos(PHP_OS,'win') === 0 ? ('WIN '.php_uname('v')) : PHP_OS;
@@ -695,7 +699,8 @@
     if(function_exists('opcache_is_script_cached')){
       $opcacheInfo = " OPcache";
     }
-    $html .= ', PHP-Version: '.PHP_VERSION.' ('. PHP_INT_SIZE * 8 .' Bit'.$opcacheInfo.'), Time: '.$totalTime.' s';
+    $html .= ', PHP-Version: '.PHP_VERSION.' ('. PHP_INT_SIZE * 8 .' Bit'.$opcacheInfo.')';
+    $html .= ', Time: '.$sumTime.'ms (AVG: '.$avgTime.'ms)';
     $html .= ', Memory: '.sprintf('%.1f',memory_get_peak_usage(true)/1024/1024).'M ('.ini_get('memory_limit').')';
     $html .= "<br/>\r\n";
     return $html;
@@ -883,7 +888,7 @@
       }
       elseif(is_string($delta) AND preg_match('~^p(\d{1,2})$~i',$delta,$match)){
         //use 'Pnumber' for Precision
-        $delta = (abs($actual) + abs($expected)) * pow(10,-$match[1]);
+        $delta = (abs($actual) + abs($expected)) * pow(10,-(int)$match[1]);
       }
       $equal = abs($expected-$actual) <= $delta ;
     }

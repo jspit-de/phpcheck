@@ -1,4 +1,7 @@
 # PHPcheck
+## Version 1.66 (2023-04-25)
+* checked for PHP 8.2
+* new algorithm determination of total time
 
 ## Version 1.65 (2022-12-21)
 
